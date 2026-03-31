@@ -1,0 +1,287 @@
+html
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>老闆後台管理</title>
+<style>
+  /* 全局風格 */
+  body {
+    margin:0;
+    font-family: 'Helvetica Neue', sans-serif;
+    background-color: #fff;
+    color: #222;
+  }
+
+  /* 頭部 */
+  .header {
+    background-color: #000;
+    color: #fff;
+    padding: 12px 20px;
+    text-align: center;
+  }
+
+  /* 內容區域 */
+  .content {
+    padding: 20px;
+    padding-bottom: 70px;
+  }
+
+  /* 卡片風格 */
+  .card {
+    background-color: #f5f5f5;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  /* 按鈕樣式及互動 */
+  button {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    margin: 4px;
+    transition: background-color 0.2s;
+  }
+  button:hover {
+    background-color: #eee;
+  }
+
+  /* 固定底部導航列 */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background-color: #000;
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0;
+    z-index: 999;
+  }
+  .bottom-nav button {
+    color: #fff;
+    background: none;
+    border: none;
+    font-size: 14px;
+  }
+
+  /* 頁面隱藏與顯示 */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* 圖像預覽樣式 */
+  .img-preview {
+    max-width: 80px;
+    max-height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <h2>老闆後台管理</h2>
+</header>
+
+<div class="content">
+
+  <!-- 首頁 -->
+  <div id="page-home" class="page active">
+    <h3>首頁</h3>
+    <!-- 匯率換算 -->
+    <div style="margin-bottom:15px;">
+      <h4>匯率換算</h4>
+      <label>台幣/韓幣匯率：</label>
+      <input type="number" id="exchangeRate" value="0.025" step="0.0001" style="width:100px;"/>
+      <button onclick="convertCurrency()">換算成台幣</button>
+      <div id="currencyResult" style="margin-top:10px; font-weight:bold;"></div>
+    </div>
+    <!-- 運費 -->
+    <div style="margin-bottom:15px;">
+      <h4>每月運費/收入支出</h4>
+      <div>
+        <label>每月收入：</label>
+        <input type="number" id="monthlyIncome" placeholder="收入" style="width:120px;"/> 
+        <label>支出：</label>
+        <input type="number" id="monthlyExpense" placeholder="支出" style="width:120px;"/>
+      </div>
+    </div>
+    <!-- 訂單總結 -->
+    <div style="margin-bottom:15px;">
+      <h4>訂單與收入總結</h4>
+      <button onclick="showSummary()">總結結帳</button>
+      <div id="summaryResult" style="margin-top:10px; font-weight:bold;"></div>
+    </div>
+    <!-- 社交連結 -->
+    <div>
+      <h4>快速連結</h4>
+      <button onclick="alert('前往蝦皮')">蝦皮</button>
+      <button onclick="alert('前往 IG')">IG</button>
+      <button onclick="alert('前往官方 Line')">Line</button>
+    </div>
+  </div>
+
+  <!-- 價目表 -->
+  <div id="page-price" class="page">
+    <h3>價目表</h3>
+    <!-- 小分類按鈕 -->
+    <div style="margin-bottom:10px;">
+      <button onclick="filterService('all')">全部</button>
+      <button onclick="filterService('韓幣換算')">韓幣換算</button>
+      <button onclick="filterService('其他')">其他</button>
+    </div>
+    <!-- 價目表卡片（範例） -->
+    <div id="price-cards">
+      <div class="card" data-category="韓幣換算">
+        <h4>韓幣換算服務</h4>
+        <p>每公斤韓幣價格，換算成台幣</p>
+      </div>
+      <div class="card" data-category="其他">
+        <h4>高級包裝</h4>
+        <p>包裝加價方案</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 訂單管理 -->
+  <div id="page-order" class="page">
+    <h3>客戶訂單</h3>
+    <!-- 商品輸入 -->
+    <div style="margin-bottom:10px;">
+      <input type="text" placeholder="商品名稱" id="prod-name" />
+      <input type="number" placeholder="數量" id="prod-qty" style="width:60px;" />
+      <input type="number" placeholder="單價" id="prod-price" style="width:80px;"/>
+      <button onclick="addProduct()">加入商品</button>
+    </div>
+    <!-- 商品清單 -->
+    <div>
+      <h4>商品清單</h4>
+      <ul id="product-list"></ul>
+    </div>
+    <!-- 總金額 -->
+    <div style="margin-top:10px;">
+      <strong>總金額：</strong><span id="total-amount">0</span> 台幣
+    </div>
+    <!-- 客人地址 -->
+    <div style="margin-top:20px;">
+      <h4>客人地址</h4>
+      <div style="display:flex; align-items:center;">
+        <span id="cust-address">台北市中正區和平西路一段100號</span>
+        <button style="margin-left:10px;" onclick="copyAddress()">複製</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 關於我 -->
+  <div id="page-about" class="page">
+    <h3>關於我</h3>
+    <p style="line-height:1.5;">
+      <!-- 這裡放品牌故事與圖示 -->
+      我是XXX品牌，專注於高質感與療癒的商品。<br>
+      <img src="https://via.placeholder.com/50" alt="點綴圖" style="vertical-align:middle; margin-right:8px;">
+      用心創作，溫柔陪伴每一位客人，喜歡就趕快聯繫我吧！
+    </p>
+  </div>
+
+</div>
+
+<!-- 底部固定導覽列 -->
+<div class="bottom-nav">
+  <button onclick="showPage('page-home')">首頁</button>
+  <button onclick="showPage('page-price')">價目表</button>
+  <button onclick="showPage('page-order')">訂單管理</button>
+  <button onclick="showPage('page-about')">關於我</button>
+</div>
+
+<script>
+  // 頁面切換
+  function showPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  // 匯率換算
+  function convertCurrency() {
+    const rate = parseFloat(document.getElementById('exchangeRate').value);
+    const sampleKoreaWon = 10000; //範例
+    if(!rate || isNaN(rate)){ alert('請輸入正確匯率'); return; }
+    const result = sampleKoreaWon * rate;
+    document.getElementById('currencyResult').innerText = `約 ${result.toFixed(2)} 台幣`;
+  }
+
+  // 商品管理
+  let products = [];
+  function addProduct() {
+    const name = document.getElementById('prod-name').value.trim();
+    const qty = parseInt(document.getElementById('prod-qty').value);
+    const price = parseFloat(document.getElementById('prod-price').value);
+    if(!name || isNaN(qty) || isNaN(price)){
+      alert('請完整輸入商品資料');
+      return;
+    }
+    // 商品物件
+    products.push({name, qty, price});
+    renderProductList();
+    updateTotal();
+    document.getElementById('prod-name').value='';
+    document.getElementById('prod-qty').value='';
+    document.getElementById('prod-price').value='';
+  }
+  function renderProductList() {
+    const list = document.getElementById('product-list');
+    list.innerHTML='';
+    products.forEach((p, i) => {
+      const li = document.createElement('li');
+      li.innerHTML = `<img src="${p.photo || 'https://via.placeholder.com/50'}" class="img-preview" alt="商品照片" />${p.name} x${p.qty} @${p.price} NT$ <button onclick="removeProduct(${i})">刪除</button>`;
+      list.appendChild(li);
+    });
+  }
+  function removeProduct(i) {
+    products.splice(i,1);
+    renderProductList();
+    updateTotal();
+  }
+  function updateTotal() {
+    let total=0;
+    products.forEach(p => total += p.qty * p.price);
+    document.getElementById('total-amount').innerText = total.toFixed(2);
+  }
+  function showSummary() {
+    const total = document.getElementById('total-amount').innerText;
+    const income = document.getElementById('monthlyIncome').value;
+    const expense = document.getElementById('monthlyExpense').value;
+    const profit = income - expense;
+    document.getElementById('summaryResult').innerHTML = `
+      <p>本月總收入：${income} 台幣</p>
+      <p>支出：${expense} 台幣</p>
+      <p>純利（收入-支出）：${profit} 台幣</p>
+    `;
+  }
+  // 复制地址
+  function copyAddress() {
+    const address = document.getElementById('cust-address').innerText;
+    navigator.clipboard.writeText(address).then(() => {
+      alert('地址已複製！');
+    });
+  }
+
+  // 價目表篩選
+  function filterService(category){
+    document.querySelectorAll('.card').forEach(card => {
+      if(category==='all' || card.dataset.category===category){
+        card.style.display='block';
+      } else {
+        card.style.display='none';
+      }
+    });
+  }
+</script>
+</body>
+</html>
